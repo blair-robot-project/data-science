@@ -14,9 +14,10 @@ fixed_data <- data_sheet |>
     mutate(Time = time_fixer(Time))
 
 new_data <- fixed_data |>
-    group_by(`Student ID`, Date) |>
+    group_by(StudentID, Date) |>
     summarize(TimeSpent = as.character(max(as.numeric(Time)) - min(as.numeric(Time))),
-              TimeArrived = min(Time),
-              TimeLeft = max(Time),
-              `Student ID` = min(`Student ID`),
+              TimeArrived = min(as.numeric(Time)),
+              TimeLeft = max(as.numeric(Time)),
+              StudentID = StudentID,
               Date = min(Date))
+
