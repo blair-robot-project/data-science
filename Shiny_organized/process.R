@@ -1,23 +1,34 @@
 #lets do this
 library(googlesheets4)
 library(dplyr)
+library(stringr)
+library(lubridate)
 
 data_sheet <- read_sheet("https://docs.google.com/spreadsheets/d/1hXbsPjKuyHZYW3LuDfqaSVnZSOkykmPnVyEZ2izvgvA/edit?usp=sharing")
 
 time_fixer <- function(a_number) {
     a_string <- as.character(a_number)
-    new_string <- substring(a_string, 11)
+    new_string <- substring(a_string, 12)
     return(new_string)
 }
 
+name_fixer <- function(id) {
+    x <- as.character(id)
+    string1 <- ifelse(grepl(" ", x), paste0(stringr::word(x, 1), stringr::word(x, 2)), x)
+    return(string1)
+}
+
 fixed_data <- data_sheet |>
-    mutate(Time = time_fixer(Time))
+    mutate(Time = time_fixer(Time),
+           StudentID = name_fixer(StudentID))
 
 new_data <- fixed_data |>
     group_by(StudentID, Date) |>
-    summarize(TimeSpent = as.character(max(as.numeric(Time)) - min(as.numeric(Time))),
-              TimeArrived = min(as.numeric(Time)),
-              TimeLeft = max(as.numeric(Time)),
-              StudentID = StudentID,
-              Date = min(Date))
+    reframe(TimeSpent = as.numeric(difftime(
+            max(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE), 
+            min(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE), 
+            units = "mins"), digits = 1),
+            TimeArrived = time_fixer(min(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE)),
+            TimeLeft = time_fixer(max(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE)))
+
 
