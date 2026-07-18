@@ -59,5 +59,6 @@ new_data <- data_sheet |>
 
 summary_data <- new_data |>
     group_by(StudentID) |>
-    summarize(Total = floor(sum(TimeSpent)))
+    summarize(Total = floor(sum(TimeSpent))) |>
+    arrange(desc(Total))
 
