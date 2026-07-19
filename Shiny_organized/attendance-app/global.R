@@ -44,3 +44,20 @@ summary_data <- new_data |>
     group_by(StudentID) |>
     summarize(Total = sum(TimeSpent)) |>
     arrange(desc(Total))
+
+#helper functions
+member_graph <- function(
+        selected_id
+) {
+    selected_data <- reactive({subset(new_data, StudentID == input$selected_id)})
+    ggplot(
+        selected_data(),
+        aes(x = Date, y = TimeSpent, color = StudentID, group = StudentID)
+        ) +
+        geom_line() +
+        geom_point() +
+        theme_bw() +
+        theme(
+            legend.position = "bottom",
+        )
+}

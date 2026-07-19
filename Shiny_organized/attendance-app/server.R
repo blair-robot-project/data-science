@@ -10,5 +10,7 @@ server <- function(input, output) {
     output$summaryTable <- renderTable({
         summary_data
     })
-    
+    output$individual_graph <- renderPlot({
+        
+    })
 }
