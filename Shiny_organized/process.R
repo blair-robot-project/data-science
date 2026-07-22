@@ -87,4 +87,4 @@ member_graph <- function(
         )
 }
 
-member_graph(c("MargaretYuan", "Cheese", "RosyYu"))
+member_graph(c("Biscuit", "MitchellHung"))

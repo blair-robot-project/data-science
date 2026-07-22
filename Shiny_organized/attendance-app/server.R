@@ -11,6 +11,6 @@ server <- function(input, output) {
         summary_data
     })
     output$individual_graph <- renderPlot({
-        
+        member_graph(new_data, input$selected_id)
     })
 }

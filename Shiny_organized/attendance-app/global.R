@@ -47,17 +47,20 @@ summary_data <- new_data |>
 
 #helper functions
 member_graph <- function(
-        selected_id
+        new_data, selected_id
 ) {
-    selected_data <- reactive({subset(new_data, StudentID == input$selected_id)})
-    ggplot(
-        selected_data(),
+    selected_data <- new_data |>
+        filter(StudentID %in% c(selected_id)) |>
+        mutate(StudentID = factor(StudentID))
+    plt <- ggplot(
+        selected_data,
         aes(x = Date, y = TimeSpent, color = StudentID, group = StudentID)
-        ) +
+    ) +
         geom_line() +
         geom_point() +
         theme_bw() +
         theme(
             legend.position = "bottom",
         )
+    return(plt)
 }
