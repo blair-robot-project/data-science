@@ -12,17 +12,13 @@ time_fixer <- function(a_number) {
     new_string <- substring(a_string, 11)
     return(new_string)
 }
-name_fixer <- function(id) {
-    x <- as.character(id)
-    string1 <- ifelse(grepl(" ", x), paste0(stringr::word(x, 1), stringr::word(x, 2)), x)
-    return(string1)
-}
 
 #process data
 new_data <- data_sheet |>
+    filter(if_else(substr(StudentID, 2,3) == "WD", FALSE, TRUE)) |>
     mutate(
         Time = time_fixer(Time),
-        StudentID = name_fixer(StudentID),
+        StudentID = StudentID,
         Date = as.character(as.POSIXct(Date, format="%Y:%m:%d"))
     ) |>
     group_by(StudentID, Date) |>
