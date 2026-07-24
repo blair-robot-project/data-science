@@ -38,7 +38,7 @@ new_data <- data_sheet |>
         TimeLeft = time_fixer(
             max(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE))
     ) |>
-    arrange(Date)
+    arrange(Date, TimeArrived)
 
 summary_data <- new_data |>
     group_by(StudentID) |>
