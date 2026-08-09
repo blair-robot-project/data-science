@@ -1,0 +1,135 @@
+---
+title: "wpilib"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+df <- data.frame(names(champs_qm108)) |>
+    rename(variables = names.champs_qm108.)
+
+# Drive, Indexer, Intake, Shooter
+sum(grepl("battery", df$variables))
+
+a <- grepl("SupplyCurrentAmp", df$variables)
+# a[1] = TRUE
+
+b <- champs_qm108[, a]
+b <- b[-1, ]
+b <- b |>
+    mutate(across(where(is.character), as.numeric)) |>
+    summarize(across(everything(), sum, na.rm=TRUE))
+b <- b |>
+    pivot_longer(cols = everything(), names_to = "name", values_to = "value")
+
+graph <- ggplot(data = b, mapping = aes(x = name, y = value)) +
+    geom_bar(stat = "identity") + theme_bw() + coord_flip()
+
+graph
+```
+
+```{r}
+library(tidyverse)
+
+# supply not stator
+time <- champs_qm108[1]
+backLeftDriveStatorAmps <- champs_qm108[17]
+backRightDriveStatorAmps <- champs_qm108[24]
+
+graph_df <- data.frame(time, backLeftDriveStatorAmps, backRightDriveStatorAmps) |>
+    rename(left_drive_amps = X.Drive.BackLeftData.driveStatorCurrentAmps,
+           right_drive_amps = X.Drive.BackRightData.driveStatorCurrentAmps, 
+           time = Timestamp)
+```
+
+```{r}
+# select all rows of the same tenth of the second and take the average of its amps
+
+graph_df <- data.frame(floor(time * 10) / 10, 
+                       backLeftDriveStatorAmps, 
+                       backRightDriveStatorAmps) |>
+    rename(left_drive_amps = X.Drive.BackLeftData.driveStatorCurrentAmps,
+           right_drive_amps = X.Drive.BackRightData.driveStatorCurrentAmps, 
+           time = Timestamp)
+
+graph_df <- graph_df |>
+    group_by(time) |>
+        mutate(left_drive_amps = as.numeric(left_drive_amps), 
+           right_drive_amps = as.numeric(right_drive_amps)) |>
+    summarise(mean_left_drive_amps = mean(left_drive_amps, na.rm = TRUE),
+              mean_right_drive_amps = mean(right_drive_amps, na.rm = TRUE)) |>
+    filter(time <= 20) |>
+    filter(time > 16.1)
+
+graph <- ggplot(data = graph_df) +
+    geom_line(mapping = aes(x = time, y = mean_left_drive_amps)) +
+    geom_line(mapping = aes(alpha = 0.2, x = time, y = mean_right_drive_amps)) +
+    theme_bw() +
+    labs(title = "Left and Right Drive Supply Amps Usage Over 2 Seconds")
+graph
+```
+
+```{r}
+
+pivoted_graph_df <- graph_df |>
+    pivot_longer(cols = c("mean_left_drive_amps", "mean_right_drive_amps"))
+
+graph <- ggplot(data = pivoted_graph_df, mapping = aes(x = time, y = value, color = name)) +
+    geom_line() +
+    labs(title = "BETTER Left and Right Drive Supply Amps Usage Over 2 Seconds", 
+         x = "Time", y = "Value") +
+    theme_bw()
+
+graph
+```
+
+```{r}
+# takes in different robot parts
+# selects from rda 
+# creates graph df
+# pivots df
+# graphs
+
+library(tidyverse)
+
+new_df <- champs_qm108
+
+selected_time_start <- 100
+selected_time_end <- 300
+
+selected_columns <- c("/Drive/BackRightData/driveSupplyCurrentAmps", 
+                      "/Drive/BackRightData/steerSupplyCurrentAmps")
+
+df <- data.frame(names(new_df))
+
+a <- grepl("SupplyCurrentAmp", df$variables)
+a[1] = TRUE
+b <- new_df[, a]
+b <- b[-1, ] |>
+    mutate(across(where(is.character), as.numeric)) |>
+    mutate(Timestamp = floor(Timestamp * 10) / 10) |>
+    group_by(Timestamp)
+
+selected_b <- b |>
+    filter(between(Timestamp, selected_time_start, selected_time_end)) |>
+    select(selected_columns) |>
+    summarise(across(everything(), mean))
+
+# they call me the master pivoter
+pivoted_b <- selected_b |>
+    pivot_longer(cols = -1)
+
+graph <- ggplot(data = pivoted_b, mapping = aes(x = Timestamp, y = value, color = name)) +
+    geom_line() +
+    labs(title = "i hate titles", x = "time", y = "amps") +
+    scale_color_manual(
+        name = "Engine Type", 
+        values = c("red", "blue"),
+        labels = c("selected1", "selected2")
+    )
+
+# AHAHAHAHHAHA
+
+graph
+```

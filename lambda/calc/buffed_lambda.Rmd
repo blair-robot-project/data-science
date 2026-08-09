@@ -1,0 +1,184 @@
+```{r}
+
+library(dplyr)
+
+# helper funcs i added for team_info
+get_num_events <- function(team_number, event_key) { 
+    # event_key thing here does absoluteley nothing because i can't find the reverse of             something like the year of the event given the event_key
+    df <- team_events(team_number, year = 2026, official = TRUE) |>
+        select(start_date = start_date) |>
+        mutate(
+            chipotle = 1
+        )
+    
+    n <- sum(df$chipotle)
+}
+
+get_rookie_status <- function(team_number) {
+    n <- 0.5
+    a <- team_participation_years(team_number)
+    if(length(a) > 1) {
+        n <- 1
+    }
+    n
+}
+
+
+# from scoutig_2026 helper_functions pridge (only changed part is team_info)
+event_key <- c("mdbet")
+
+data_dir_path <- paste0("~/Documents/R/data science/lambda/data/", event_key) # sorry
+schedule <- read.csv(paste0(data_dir_path, "/schedule.csv"))
+tba_data <- read.csv(paste0(data_dir_path, "/tba_data.csv"))
+statbotics_data <- read.csv(paste0(data_dir_path, "/statbotics_data.csv"))
+
+unique_teams <- sort(unique(unlist(schedule[,2:7])))
+design <- matrix(0, 
+                 nrow = length(unique(tba_data$match)) * 2, 
+                 ncol = length(unique_teams))
+colnames(design) <- unique_teams
+matches <- unique(tba_data$match)
+
+
+team_info <- data.frame(team = colnames(design))|>
+    mutate(rookie_status = sapply(team, function(x) get_rookie_status(x)), 
+           num_events = sapply(team, function(x) get_num_events(x, "mdbet"))
+    )
+
+
+
+long_schedule <- schedule |>
+    pivot_longer(
+        cols = c("R1", "R2", "R3", "B1", "B2", "B3"),
+        names_to = "robot",
+        values_to = "team"
+    )
+
+for (i in 1:nrow(design)) {
+    chipotle <- filter(
+        long_schedule,
+        match == matches[ceiling(i/2)], 
+        substring(robot, 1, 1) == ifelse(i %% 2, "B", "R"))
+    design[i, as.character(chipotle$team)] = 1
+}
+
+response <- tba_data |>
+    pivot_longer(
+        cols = names(tba_data)[2:5],
+        names_to = "alliance",
+        values_to = "score"
+    )
+
+auto_priors <- statbotics_data$auto_fuel_pre_epa
+tele_priors <- statbotics_data$tele_fuel_pre_epa
+names(auto_priors) <- names(tele_priors) <- statbotics_data$team
+grid <- seq(0, 20, length.out = 1000)
+tele_fuel_columns <- c('red_tele_fuel', 'blue_tele_fuel') # 80 char limit
+
+auto_mses <- scoutR:::pridge_lambda_cv(
+    design, 
+    response$score[!(response$alliance %in% tele_fuel_columns)], 
+    auto_priors, grid, plot_mses = FALSE)
+
+tele_mses <- scoutR:::pridge_lambda_cv(
+    design, 
+    response$score[response$alliance %in% tele_fuel_columns], 
+    tele_priors, grid, plot_mses = FALSE)
+
+auto_lambda_opt <- grid[which.min(auto_mses)]
+tele_lambda_opt <- grid[which.min(tele_mses)]
+
+auto_fuel <- round(scoutR:::prior_ridge(
+    design, 
+    response$score[
+        (response$alliance %in% c('red_auto_fuel', 'blue_auto_fuel'))],  
+    auto_lambda_opt, auto_priors), 2)
+tele_fuel <- round(scoutR:::prior_ridge(
+    design, 
+    response$score[
+        response$alliance %in% c('red_tele_fuel', 'blue_tele_fuel')],  
+    tele_lambda_opt, tele_priors), 2)
+
+auto_fuel_opr <- round(scoutR:::prior_ridge(
+    design, 
+    response$score[
+        (response$alliance %in% c('red_auto_fuel', 'blue_auto_fuel'))],  
+    0, auto_priors), 2)
+tele_fuel_opr <- round(scoutR:::prior_ridge(
+    design, 
+    response$score[
+        response$alliance %in% c('red_tele_fuel', 'blue_tele_fuel')],  
+    0, tele_priors), 2)
+
+priors_df <- data.frame(
+    team = unique_teams, 
+    auto_fuel, tele_fuel, 
+    auto_fuel_opr, tele_fuel_opr,
+    auto_fuel_pre_epa = statbotics_data$auto_fuel_pre_epa,
+    tele_fuel_pre_epa = statbotics_data$tele_fuel_pre_epa,
+    auto_fuel_recent_epa = statbotics_data$auto_fuel_recent_epa,
+    tele_fuel_recent_epa = statbotics_data$tele_fuel_recent_epa)
+write.csv(
+    priors_df, 
+    paste0("~/Documents/R/data science/lambda/data/", event_key, "/pridge.csv"), # sorry again
+    row.names = FALSE)
+
+```
+
+```{r}
+
+# i think it's a github issue? when i call prior_ridge from scoutR it won't accept multiple lambdas so i copy pasted the latest functions required to run pridge from github direclty
+prior_ridge <- function(X, y, lambda, beta_0) {
+    stopifnot("prior_ridge design matrix must be a matrix" = {is.matrix(X)})
+    stopifnot("lambda must be a single value, or equal to ncol(X)" = 
+                  {length(lambda) %in% c(1, ncol(X))}) # most goated commit on 4/26 btw
+    stopifnot("coefficients in beta_0 must match ncol(X)" =
+                  {length(beta_0) == ncol(X)})
+    p <- ncol(X)
+    lambda <- diag(lambda, p)
+    solve(crossprod(X) + lambda, crossprod(X, y) + lambda %*% beta_0)[, 1]
+}
+
+pridge_loocv <- function(X, y, lambda, beta_0, mse = TRUE){
+    errors <- rep(NA, length(y))
+    for (i in seq_along(y)){
+        X_train <- X[-i, ]
+        y_train <- y[-i]
+        X_test <- X[i, ]
+        y_test <- y[i]
+        # train on the training data
+        coefs <- scoutR:::prior_ridge(X_train, y_train, lambda, beta_0)
+        # make predictions using test data and compute error
+        pred <- X_test %*% coefs
+        # use drop() to ensure the error is a vector, not a matrix
+        errors[i] <- drop(pred - y_test)
+    }
+    if(mse) return(mean(errors ^ 2))
+    return(errors)
+}
+
+rookie_vecs <- seq(0.1, 5, by = 0.1) # how can i know what's the best test numbers without 
+event_vecs  <- seq(0.1, 5, by = 0.1) # too much computing
+
+mults_df <- expand.grid(rookie_mult = rookie_vecs, event_mult= event_vecs)
+
+mults_df$mse <- mapply(function(rm, em) {
+        pridge_loocv(
+            X = design,
+            y = response$score[response$alliance %in% tele_fuel_columns],
+            lambda = tele_lambda_opt * 
+                rm ^ team_info$rookie_status * # should I exponentiate or multiply? 
+                em ^ team_info$num_events, # i just wanna avoid 0
+            beta_0 = tele_priors,
+            mse = TRUE
+        )
+    },
+    mults_df$rookie_mult,
+    mults_df$event_mult
+)
+
+best_mse <- min(mults_df$mse)
+best <- hyper_grid[mults_df$mse == best_mse, ]
+
+best
+```
