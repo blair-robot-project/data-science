@@ -1,0 +1,238 @@
+---
+title: "epa_main"
+format: html
+editor: visual
+---
+
+```{r}
+library("tidyverse")
+library("scoutR")
+library("usethis")
+
+k_func <- function(n) {
+  x <- 0.5 - (0.2 / 6) * (n - 6)
+  x <- pmin(0.5, pmax(0.3, x))
+  (2/3) * x
+}
+
+m_func <- function(n) {
+  0
+}
+
+events <- events(2023)
+events_2026 <- events(2026)
+
+all_matches_26 <- events(2026) |>
+  filter(event_type_string != "Offseason") |>
+  pull(key) |>
+  map_dfr(event_matches)
+
+all_matches <- events(2023) |>
+  filter(event_type_string != "Offseason") |>
+  pull(key) |>
+  map_dfr(event_matches)
+
+week1_events <- events|>
+  filter(week == 1)|>
+  pull(key)
+
+quals_played <- all_matches|>
+  filter(comp_level == "qm")|>
+  #slice(1:75)|>
+  pivot_longer(cols = c(blue1,blue2,blue3,red1,red2,red3), names_to = "position",
+    values_to = "team")|>
+  select(team,position,event_key,red_score,blue_score,key,match_number)|>
+  group_by(team)|>
+  count(team, name = "quals_played")
+
+avg_score <- map_dfr(week1_events, event_matches)|>summarize(score = mean((red_score + blue_score)/2), auto_score = mean((red_autoPoints+blue_autoPoints)/2), endgame_score = mean((red_endGameChargeStationPoints+red_endGameParkPoints+blue_endGameChargeStationPoints+blue_endGameParkPoints)/2))|>mutate(teleop_score = score-auto_score-endgame_score)
+  
+matches <- events
+
+match_data <- all_matches|>
+  select(
+    red1,red2,red3,blue1,blue2,blue3,match_number,event_key,red_score,blue_score,match_number,red_autoPoints,blue_autoPoints,red_endGameParkPoints,blue_endGameParkPoints,red_endGameChargeStationPoints,blue_endGameChargeStationPoints,red_foulPoints,blue_foulPoints
+  )|>
+  mutate(
+    red_endGamePoints = red_endGameChargeStationPoints+red_endGameParkPoints,
+    blue_endGamePoints = blue_endGameChargeStationPoints+blue_endGameParkPoints
+  )|>
+  select(
+    -red_endGameChargeStationPoints,-red_endGameParkPoints,
+    -blue_endGameChargeStationPoints,-blue_endGameParkPoints
+  )|>
+  mutate(
+    red_teleopPoints = red_score-red_autoPoints-red_endGamePoints,
+    blue_teleopPoints = blue_score-blue_autoPoints-blue_endGamePoints
+  )|>
+  mutate(
+    red_score = red_score - red_foulPoints,
+    blue_score = blue_score - blue_foulPoints
+  )
+
+epa <- tibble(
+  team = quals_played$team, 
+  epa = avg_score$score/3, 
+  auto_epa = avg_score$auto_score/3,
+  teleop_epa = avg_score$teleop_score/3,
+  endgame_epa = avg_score$endgame_score/3,
+  quals_played = 0
+  )|>
+  left_join(quals_played)
+
+for (i in seq_len(nrow(match_data))) {
+  match <- match_data[i, ]
+  
+  red_teams <- c(match$red1, match$red2, match$red3)
+  blue_teams <- c(match$blue1, match$blue2, match$blue3)
+  
+  red_epa <- epa$epa[epa$team %in% red_teams]
+  blue_epa <- epa$epa[epa$team %in% blue_teams]
+  
+  k_red <- k_func(epa$quals_played[epa$team %in% red_teams])
+  k_blue <- k_func(epa$quals_played[epa$team %in% blue_teams])
+  
+  m_red <- m_func(epa$quals_played[epa$team %in% red_teams])
+  m_blue <- m_func(epa$quals_played[epa$team %in% blue_teams])
+  
+  red_ex_score <- sum(red_epa)
+  blue_ex_score <- sum(blue_epa)
+  
+  red_error <- match$red_score - red_ex_score
+  blue_error <- match$blue_score - blue_ex_score
+  
+  red_epa_change <- k_red * (1 / (1 + m_red)) * ((red_error - m_red * blue_error) / 3)
+  epa$epa[epa$team %in% red_teams] <- epa$epa[epa$team %in% red_teams] + red_epa_change
+  
+  blue_epa_change <- k_blue * (1 / (1 + m_blue)) * ((blue_error - m_blue * red_error) / 3)
+  epa$epa[epa$team %in% blue_teams] <- epa$epa[epa$team %in% blue_teams] + blue_epa_change
+  
+  epa$quals_played[epa$team %in% red_teams] <- epa$quals_played[epa$team %in% red_teams] + 1
+  epa$quals_played[epa$team %in% blue_teams] <- epa$quals_played[epa$team %in% blue_teams] + 1
+}
+
+events<-events(2023)|>filter(event_type_string!="Offseason")|>pull(key)
+```
+
+```{r}
+events<-events(2023)|>filter(event_type_string!="Offseason")|>pull(key)
+```
+
+```{r}
+library("usethis")
+```
+
+```{r}
+colnames(all_matches_26")
+
+```
+
+```{r}
+library("tidyverse")
+library("scoutR")
+library("usethis")
+
+k_func <- function(n) {
+  x <- 0.5 - (0.2 / 6) * (n - 6)
+  x <- pmin(0.5, pmax(0.3, x))
+  (2/3) * x
+}
+m_func <- function(n) {
+  0
+}
+
+all_matches <- events(2026) |>
+  filter(event_type_string != "Offseason") |>
+  pull(key) |>
+  map_dfr(event_matches)
+
+quals_played <- all_matches |>
+  filter(comp_level == "qm") |>
+  pivot_longer(cols = c(blue1, blue2, blue3, red1, red2, red3), names_to = "position",
+    values_to = "team") |>
+  select(team, position, event_key, red_score, blue_score, key, match_number) |>
+  group_by(team) |>
+  count(team, name = "quals_played")
+
+avg_score <- all_matches |>
+  filter(comp_level == "qm") |>
+  summarize(
+    score         = mean((red_score + blue_score) / 2, na.rm = TRUE),
+    auto_score    = mean((red_totalAutoPoints + blue_totalAutoPoints) / 2, na.rm = TRUE),
+    endgame_score = mean((red_endGameTowerPoints + blue_endGameTowerPoints) / 2, na.rm = TRUE)
+  ) |>
+  mutate(teleop_score = score - auto_score - endgame_score)
+
+match_data <- all_matches |>
+  filter(comp_level == "qm") |>
+  select(
+    red1, red2, red3, blue1, blue2, blue3,
+    match_number, event_key,
+    red_score, blue_score,
+    red_totalAutoPoints, blue_totalAutoPoints,
+    red_endGameTowerPoints, blue_endGameTowerPoints,
+    red_foulPoints, blue_foulPoints
+  ) |>
+  mutate(
+    red_teleopPoints  = red_score  - red_totalAutoPoints  - red_endGameTowerPoints,
+    blue_teleopPoints = blue_score - blue_totalAutoPoints - blue_endGameTowerPoints
+  ) |>
+  mutate(
+    red_score  = red_score  - red_foulPoints,
+    blue_score = blue_score - blue_foulPoints
+  )
+
+epa <- tibble(
+  team          = quals_played$team,
+  epa           = avg_score$score / 3,
+  auto_epa      = avg_score$auto_score / 3,
+  teleop_epa    = avg_score$teleop_score / 3,
+  endgame_epa   = avg_score$endgame_score / 3,
+  quals_played  = 0
+) |>
+  left_join(quals_played, by = "team", suffix = c("", "_counted")) |>
+  select(-quals_played_counted)
+
+for (i in seq_len(nrow(match_data))) {
+  match <- match_data[i, ]
+  
+  red_teams  <- c(match$red1,  match$red2,  match$red3)
+  blue_teams <- c(match$blue1, match$blue2, match$blue3)
+  
+  red_epa  <- epa$epa[epa$team %in% red_teams]
+  blue_epa <- epa$epa[epa$team %in% blue_teams]
+  
+  k_red  <- k_func(epa$quals_played[epa$team %in% red_teams])
+  k_blue <- k_func(epa$quals_played[epa$team %in% blue_teams])
+  
+  m_red  <- m_func(epa$quals_played[epa$team %in% red_teams])
+  m_blue <- m_func(epa$quals_played[epa$team %in% blue_teams])
+  
+  red_ex_score  <- sum(red_epa)
+  blue_ex_score <- sum(blue_epa)
+  
+  red_error  <- match$red_score  - red_ex_score
+  blue_error <- match$blue_score - blue_ex_score
+  
+  red_epa_change  <- k_red  * (1 / (1 + m_red))  * ((red_error  - m_red  * blue_error) / 3)
+  blue_epa_change <- k_blue * (1 / (1 + m_blue)) * ((blue_error - m_blue * red_error)  / 3)
+  
+  epa$epa[epa$team %in% red_teams]  <- epa$epa[epa$team %in% red_teams]  + red_epa_change
+  epa$epa[epa$team %in% blue_teams] <- epa$epa[epa$team %in% blue_teams] + blue_epa_change
+  
+  epa$quals_played[epa$team %in% red_teams]  <- epa$quals_played[epa$team %in% red_teams]  + 1
+  epa$quals_played[epa$team %in% blue_teams] <- epa$quals_played[epa$team %in% blue_teams] + 1
+}
+```
+
+```{r}
+all_teams_epa <- team_years_sb(year = 2026) |>
+  map_dfr(~ tibble(
+    team = .x$team,
+    epa = .x$epa$total_points
+  ))
+```
+
+```{r}
+
+```
