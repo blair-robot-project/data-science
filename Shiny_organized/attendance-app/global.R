@@ -2,6 +2,8 @@ library(shiny)
 library(bslib)
 library(googlesheets4)
 library(dplyr)
+library(tidyverse)
+library(ggplot2)
 
 
 data_sheet <- read_sheet("https://docs.google.com/spreadsheets/d/1hXbsPjKuyHZYW3LuDfqaSVnZSOkykmPnVyEZ2izvgvA/edit?usp=sharing")
@@ -23,16 +25,21 @@ new_data <- data_sheet |>
     ) |>
     group_by(StudentID, Date) |>
     reframe(
-        TimeSpent = as.numeric(
-            difftime(
-                max(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE), 
-                min(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE), 
-                units = "mins"), 
-            digits = 1),
         TimeArrived = time_fixer(
             min(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE)),
         TimeLeft = time_fixer(
-            max(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE))
+            max(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE)),
+        TimeSpent = ifelse(TimeArrived != TimeLeft, 
+            as.numeric(
+                difftime(
+                    max(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE), 
+                    min(as.POSIXct(Time, format="%H:%M:%S"), na.rm = TRUE), 
+                    units = "hours"), 
+                digits = 1), 
+            1
+        )
+                
+            
     ) |>
     arrange(Date, TimeArrived)
 
