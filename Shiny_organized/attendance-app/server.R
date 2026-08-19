@@ -1,16 +1,11 @@
-library(shiny)
-library(bslib)
-library(googlesheets4)
-library(dplyr)
-
 server <- function(input, output) {
     output$attendanceTable <- renderTable({
-        new_data
+        data
     })
     output$summaryTable <- renderTable({
-        summary_data
+        summary
     })
     output$individual_graph <- renderPlot({
-        member_graph(new_data, input$selected_id)
+        member_graph(data, input$selected_id)
     })
 }

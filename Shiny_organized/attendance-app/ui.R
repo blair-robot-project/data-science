@@ -1,9 +1,3 @@
-library(shiny)
-library(bslib)
-library(googlesheets4)
-library(dplyr)
-
-#ui
 ui <- fluidPage(
     theme = bs_theme(
         version = 5, 
@@ -24,7 +18,7 @@ ui <- fluidPage(
                     selectInput(
                         inputId = "selected_id", 
                         label = "Choose a Student:", 
-                        choices = unique(new_data$StudentID))
+                        choices = unique(data$student_ID))
                 ),
             mainPanel(plotOutput("individual_graph"))
             )
