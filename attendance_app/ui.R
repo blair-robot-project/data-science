@@ -12,7 +12,7 @@ ui <- fluidPage(
         tabPanel("Raw data", tableOutput("attendanceTable")),
         tabPanel("Summary", tableOutput("summaryTable")),
         tabPanel(
-            title = "Graphs",
+            title = "Individual",
             sidebarLayout(
                 sidebarPanel(
                     selectInput(
@@ -22,5 +22,7 @@ ui <- fluidPage(
                 ),
             mainPanel(plotOutput("individual_graph"))
             )
-        )
+        ),
+        tabPanel("Group", plotOutput("cumulative_graph"))
+
     ))

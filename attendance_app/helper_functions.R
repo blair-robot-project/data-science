@@ -13,7 +13,7 @@ hour_min_format <- function(double) {
 
 process_data <- function(raw) {
     data <- raw |>
-        filter(if_else(substr(StudentID, 2,3) == "WD", FALSE, TRUE)) |>
+        filter(substr(StudentID, 2,3) != "WD") |> # Recognized person
         mutate(
             time = time_fixer(Time),
             student_ID = StudentID,
@@ -27,10 +27,10 @@ process_data <- function(raw) {
                 max(as.POSIXct(time, format="%H:%M:%S"), na.rm = TRUE)),
             time_spent = ifelse(
                 time_arrived != time_left, 
-                as.numeric(difftime(
+                round(as.numeric(difftime(
                     max(as.POSIXct(time, format="%H:%M:%S"), na.rm = TRUE), 
                     min(as.POSIXct(time, format="%H:%M:%S"), na.rm = TRUE), 
-                    units = "hours"), digits = 1), 
+                    units = "hours")), digits = 2), 
                 1
             )
         ) |>
@@ -38,7 +38,6 @@ process_data <- function(raw) {
     
     return(data)
 }
-
 
 member_graph <- function(raw, selected_id) {
     data <- raw |>
@@ -55,4 +54,23 @@ member_graph <- function(raw, selected_id) {
         theme(legend.position = "bottom")
     
     return(plt)
+}
+
+cumulative_plot <- function(raw) {
+    data <- raw |>
+        group_by(date) |>
+        summarize(
+            total_time_daily = sum(time_spent)
+        ) |>
+        mutate(
+            date = as.Date(date, format = "%Y-%m-%d")
+        )
+    
+    data$cumulative_hours = round(cumsum(data$total_time_daily), 2)
+    
+    ggplot(data, aes(x = date, y = cumulative_hours)) +
+        geom_area(fill = "#a7000a", alpha = 0.5) +
+        geom_line(color = "black", size = 0.5) +
+        labs(x = "Date", y = "Cumulative Hours") + 
+        theme_bw()
 }
