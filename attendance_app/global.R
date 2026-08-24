@@ -1,9 +1,16 @@
 library(shiny)
+library(shinyWidgets)
+library(shinythemes)
+library(shinycssloaders)
+library(shiny.fluent)
+library(shiny.pwa)
 library(bslib)
-library(googlesheets4)
-library(dplyr)
+
 library(tidyverse)
+library(googlesheets4)
+library(data.table)
 library(ggplot2)
+library(plotly)
 
 source("helper_functions.R")
 
