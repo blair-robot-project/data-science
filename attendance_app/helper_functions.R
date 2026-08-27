@@ -86,6 +86,13 @@ find_total_hours <- function(data) {
     return(hours_text)
 }
 
+find_wds <- function(raw) {
+    raw <- data |>
+        select(student_ID) |>
+        filter(substr(student_ID, 2,4) == "WD")
+    
+}
+
 cumulative_plot <- function(raw) {
     data <- raw |>
         group_by(date) |>
