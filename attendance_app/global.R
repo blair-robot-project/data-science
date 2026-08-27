@@ -7,6 +7,7 @@ library(shiny.pwa)
 library(bslib)
 
 library(tidyverse)
+library(lubridate)
 library(googlesheets4)
 library(data.table)
 library(ggplot2)
@@ -27,3 +28,4 @@ summary <- data |>
     summarize(total = sum(time_spent)) |>
     arrange(desc(total)) |>
     mutate(total_string = hour_min_format(total))
+

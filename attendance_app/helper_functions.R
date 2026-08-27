@@ -4,9 +4,22 @@ time_fixer <- function(a_number) {
     return(new_string)
 }
 
+time_rounder <- function(time) {
+    h <- hour(time)
+    m <- minute(time)
+    
+    if (h == 15 & m >= 10 & m <= 40) {
+        time <- update(time, hour = 3, minute = 30, second = 0)
+    }  else if (h == 17 & m >= 45) {
+        time <- update(time, hour = 6, minute = 0, second = 0)
+    }
+    
+    return(time)
+}
+
 hour_min_format <- function(double) {
-    hour <- round(double, 0)
-    mins <- round((double - hour) * 60, 0)
+    hour <- floor(double)
+    mins <- floor((double - hour) * 60)
     sprintf("%02d:%02d", hour, mins)
     
 }
@@ -14,6 +27,9 @@ hour_min_format <- function(double) {
 process_data <- function(raw) {
     data <- raw |>
         filter(substr(StudentID, 2,3) != "WD") |> # Recognized person
+        mutate(
+            Time = time_rounder(time)
+        ) |>
         mutate(
             time = time_fixer(Time),
             student_ID = StudentID,

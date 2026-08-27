@@ -3,7 +3,7 @@ ui <- navbarPage(
     theme = bs_theme(
         version = 5, 
         bootswatch = "yeti",
-        bg = "#FFFFFF", 
+        bg = "#FFEFFF", 
         fg = "#6E6D6D",
         primary = "#E683A9",
         secondary = "#F0B4C4"
