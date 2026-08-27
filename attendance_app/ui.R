@@ -109,6 +109,9 @@ ui <- navbarPage(
             class = "graph-card",
             card_header("Group Attendance Plot"),
             plotOutput("cumulative_graph")
+        ),
+        card(
+            textOutput("total_hours_text")
         )
     )
 )

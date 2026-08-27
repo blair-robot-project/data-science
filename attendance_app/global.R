@@ -3,7 +3,7 @@ library(shinyWidgets)
 library(shinythemes)
 library(shinycssloaders)
 library(shiny.fluent)
-library(shiny.pwa)
+#library(shiny.pwa)
 library(bslib)
 
 library(tidyverse)

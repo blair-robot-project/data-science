@@ -8,10 +8,10 @@ time_rounder <- function(time) {
     h <- hour(time)
     m <- minute(time)
     
-    if (h == 15 & m >= 10 & m <= 40) {
-        time <- update(time, hour = 3, minute = 30, second = 0)
-    }  else if (h == 17 & m >= 45) {
-        time <- update(time, hour = 6, minute = 0, second = 0)
+    if (h == 15 && m >= 10 && m <= 40) {
+        time <- update(time, hour = 15, minute = 30, second = 0)
+    }  else if (h == 17 && m >= 45) {
+        time <- update(time, hour = 18, minute = 0, second = 0)
     }
     
     return(time)
@@ -27,8 +27,9 @@ hour_min_format <- function(double) {
 process_data <- function(raw) {
     data <- raw |>
         filter(substr(StudentID, 2,3) != "WD") |> # Recognized person
+        rowwise() |>
         mutate(
-            Time = time_rounder(time)
+            Time = time_rounder(Time)
         ) |>
         mutate(
             time = time_fixer(Time),
@@ -70,6 +71,19 @@ member_graph <- function(raw, selected_id) {
         theme(legend.position = "bottom")
     
     return(plt)
+}
+
+find_total_hours <- function(data) {
+    total_hours <- data |>
+        summarize(
+            total = sum(data$time_spent)
+        ) |>
+        pull(total) |>
+        as.character()
+    
+    hours_text <- paste0("Total hours: ", total_hours)
+        
+    return(hours_text)
 }
 
 cumulative_plot <- function(raw) {
