@@ -73,8 +73,13 @@ ui <- navbarPage(
         title = "Group",
         card(
             class = "graph-card",
-            card_header("Group Attendance Plot"),
+            card_header("Group Cumulative Attendance Plot"),
             plotOutput("cumulative_graph")
+        ),
+        card(
+            class = "graph-card",
+            card_header("Group Daily Average Attendance Plot"),
+            plotOutput("group_average_graph")
         ),
         card(
             textOutput("total_hours_text")

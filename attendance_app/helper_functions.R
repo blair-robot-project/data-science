@@ -111,3 +111,20 @@ cumulative_plot <- function(raw) {
         labs(x = "Date", y = "Cumulative Hours") + 
         theme_bw()
 }
+
+group_plot <- function(raw) {
+    data <- raw |>
+        group_by(date) |>
+        summarize(
+            total_time_daily = sum(time_spent)
+        ) |>
+        mutate(
+            date = as.Date(date, format = "%Y-%m-%d")
+        )
+    ggplot(data, aes(x = date, y = total_time_daily)) +
+        geom_point() +
+        labs(x = "Date", y = "Daily Average Hours") +
+        expand_limits(y = 0) +
+        theme_bw()
+    
+}
